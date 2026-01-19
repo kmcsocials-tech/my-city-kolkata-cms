@@ -1,7 +1,7 @@
 const path = require('path');
 
 module.exports = ({ env }) => {
-  const client = env('DATABASE_CLIENT', 'postgres');
+  const client = env('DATABASE_CLIENT', 'sqlite');
 
   const connections = {
     postgres: {
@@ -26,7 +26,7 @@ module.exports = ({ env }) => {
         schema: env('DATABASE_SCHEMA', 'public'),
       },
       pool: { min: env.int('DATABASE_POOL_MIN', 2), max: env.int('DATABASE_POOL_MAX', 10) },
-    },
+    }
   };
 
   return {

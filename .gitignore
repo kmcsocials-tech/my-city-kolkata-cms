@@ -114,3 +114,5 @@ build
 .strapi-updater.json
 
 *.md
+
+*.env
