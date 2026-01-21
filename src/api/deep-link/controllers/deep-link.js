@@ -7,7 +7,7 @@
 
 module.exports = {
   /**
-   * Redirect to article (handles /article/:id)
+   * Redirect to place (handles /place/:id)
    */
   async redirectPlace(ctx) {
     const { id } = ctx.params;
@@ -36,7 +36,7 @@ module.exports = {
       const description = place.description || 'Discover this amazing place in Kolkata!';
 
       // App deep link scheme
-      const appScheme = `mycitykolkata://article/${id}`;
+      const appScheme = `mycitykolkata://place/${id}`;
 
       // If desktop, show preview page (no QR code needed as per request)
       if (!isMobile) {
