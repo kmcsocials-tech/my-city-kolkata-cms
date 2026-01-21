@@ -14,7 +14,6 @@ module.exports = {
     const userAgent = ctx.request.header['user-agent'] || '';
     
     console.log(`Deep link request for place ID: ${id}`);
-    console.log(`User agent: ${userAgent}`);
 
     // Detect device type
     const isAndroid = /android/i.test(userAgent);
@@ -36,149 +35,133 @@ module.exports = {
       const title = place.title || 'My City Kolkata';
       const description = place.description || 'Discover this amazing place in Kolkata!';
 
-      // Get the full deep link URL for QR code
-      const deepLinkUrl = `${ctx.request.origin}/place/${id}`;
+      // App deep link scheme
       const appScheme = `mycitykolkata://place/${id}`;
 
-      // If desktop, show preview with QR code
+      // If desktop, show preview page (no QR code needed as per request)
       if (!isMobile) {
-        return ctx.send(generatePreviewPage(title, description, deepLinkUrl, id));
+        return ctx.send(generatePreviewPage(title, description));
       }
 
-      // For mobile devices, try to open the app
+      // For mobile devices: Auto-redirect + Fallback
       const playStoreUrl = 'https://play.google.com/store/apps/details?id=com.sujoyhens.mycitykolkata';
-      const appStoreUrl = 'https://apps.apple.com/app/YOUR_APP_ID'; // Update with your iOS app ID
+      const appStoreUrl = 'https://apps.apple.com/app/YOUR_APP_ID'; 
 
-      // Generate HTML with improved redirect logic
       const redirectHtml = `
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>${title} - My City Kolkata</title>
+    <title>${title} | My City Kolkata</title>
     
-    <!-- Open Graph Meta Tags for social sharing -->
-    <meta property="og:title" content="${title} - My City Kolkata">
-    <meta property="og:description" content="${description?.substring(0, 200) || 'Discover Kolkata with My City Kolkata'}">
-    <meta property="og:type" content="website">
+    <meta property="og:title" content="${title}">
+    <meta property="og:description" content="${description?.substring(0, 200)}">
+    <meta property="og:image" content="${ctx.request.origin}/logo.png">
     
     <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            margin: 0;
-            background: #f5f5f5;
-            color: #333;
-            padding: 20px;
+        :root {
+            --primary: #0e0e79;
+            --bg: #f8f9fa;
+            --text: #1a1a1a;
         }
-        .container {
+        body {
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: var(--bg);
+            color: var(--text);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+        }
+        .card {
+            background: white;
+            padding: 40px 30px;
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(14, 14, 121, 0.1);
             text-align: center;
             max-width: 400px;
-            background: white;
-            padding: 30px;
-            border-radius: 12px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            width: 100%;
+            border-top: 5px solid var(--primary);
         }
         .logo {
-            width: 50px;
-            height: 50px;
-            margin: 0 auto 15px;
+            width: 80px;
+            height: 80px;
+            object-fit: contain;
+            margin-bottom: 25px;
         }
         h1 {
-            font-size: 20px;
-            margin-bottom: 10px;
-            color: #333;
+            font-size: 22px;
+            font-weight: 700;
+            margin: 0 0 10px;
+            color: var(--primary);
         }
         p {
-            font-size: 14px;
+            font-size: 15px;
             color: #666;
-            margin-bottom: 20px;
+            line-height: 1.5;
+            margin: 0 0 30px;
         }
         .loader {
-            border: 2px solid #e0e0e0;
-            border-top: 2px solid #667eea;
+            width: 40px;
+            height: 40px;
+            border: 3px solid #e1e4e8;
+            border-top-color: var(--primary);
             border-radius: 50%;
-            width: 30px;
-            height: 30px;
             animation: spin 1s linear infinite;
-            margin: 0 auto 20px;
+            margin: 0 auto 30px;
         }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        .button {
-            display: inline-block;
-            padding: 12px 24px;
-            background: #667eea;
+        .btn {
+            display: block;
+            background: var(--primary);
             color: white;
             text-decoration: none;
-            border-radius: 8px;
-            font-weight: 500;
+            padding: 14px 20px;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 16px;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(14, 14, 121, 0.2);
+        }
+        .secondary-btn {
+            display: block;
+            margin-top: 15px;
+            color: var(--primary);
+            text-decoration: none;
             font-size: 14px;
-            transition: background 0.2s;
+            font-weight: 500;
         }
-        .button:hover {
-            background: #5568d3;
-        }
-        #fallback {
-            display: none;
-        }
+        @keyframes spin { to { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>Opening ${title}</h1>
-        <p>Redirecting to My City Kolkata app...</p>
+    <div class="card">
+        <img src="/logo.png" alt="My City Kolkata" class="logo">
+        <h1>Opening App...</h1>
+        <p>Taking you to <strong>${title}</strong></p>
+        
         <div class="loader"></div>
-        <a href="${isAndroid ? playStoreUrl : appStoreUrl}" class="button" id="fallback">
-            Open in App Store
-        </a>
+        
+        <a href="${appScheme}" class="btn">Open in App</a>
+        <a href="${isAndroid ? playStoreUrl : appStoreUrl}" class="secondary-btn">Download App</a>
     </div>
-    
-    <!-- Hidden iframe for deep link -->
-    <iframe id="deeplink-iframe" style="display:none;"></iframe>
-    
+
     <script>
-        (function() {
-            var appOpened = false;
-            
-            // Method 1: Try iframe (works better on some browsers)
-            var iframe = document.getElementById('deeplink-iframe');
-            iframe.src = '${appScheme}';
-            
-            // Method 2: Try window.location as fallback
-            setTimeout(function() {
-                if (!appOpened) {
-                    window.location.href = '${appScheme}';
-                }
-            }, 500);
-            
-            // Detect if user left the page (app opened)
-            document.addEventListener('visibilitychange', function() {
-                if (document.hidden) {
-                    appOpened = true;
-                }
-            });
-            
-            // If app doesn't open in 2.5 seconds, redirect to store
-            setTimeout(function() {
-                if (!appOpened) {
-                    window.location.href = '${isAndroid ? playStoreUrl : appStoreUrl}';
-                }
-            }, 2500);
-            
-            // Show fallback button after 3 seconds
-            setTimeout(function() {
-                if (!appOpened) {
-                    document.getElementById('fallback').style.display = 'inline-block';
-                }
-            }, 3000);
-        })();
+        // Attempt auto-redirect
+        window.location.href = "${appScheme}";
+        
+        // Fallback to store if not opened
+        setTimeout(function() {
+             // Optional: Check if page is still visible (basic heuristic)
+            if (!document.hidden) {
+                // window.location.href = "${isAndroid ? playStoreUrl : appStoreUrl}";
+            }
+        }, 2500);
     </script>
 </body>
 </html>
@@ -206,490 +189,316 @@ module.exports = {
 
     console.log(`Deep link request for category: ${name}`);
 
-    // Get the full deep link URL for QR code
-    const deepLinkUrl = `${ctx.request.origin}/category/${name}`;
+    // App deep link scheme
+    const appScheme = `mycitykolkata://category/${encodeURIComponent(name)}`;
 
-    // For mobile, redirect to app
-    if (isMobile) {
-      const appScheme = `mycitykolkata://category/${encodeURIComponent(name)}`;
-      const playStoreUrl = 'https://play.google.com/store/apps/details?id=com.sujoyhens.mycitykolkata';
-      const appStoreUrl = 'https://apps.apple.com/app/YOUR_APP_ID';
+    // For desktop
+    if (!isMobile) {
+      return ctx.send(generateCategoryPreviewPage(name));
+    }
 
-      const redirectHtml = `
+    // For mobile
+    const playStoreUrl = 'https://play.google.com/store/apps/details?id=com.sujoyhens.mycitykolkata';
+    const appStoreUrl = 'https://apps.apple.com/app/YOUR_APP_ID';
+
+    const redirectHtml = `
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>${name} - My City Kolkata</title>
+    <title>Category: ${name}</title>
     <style>
+        :root {
+            --primary: #0e0e79;
+            --bg: #f8f9fa;
+        }
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
+            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
             margin: 0;
-            background: #f5f5f5;
-            color: #333;
             padding: 20px;
+            background-color: var(--bg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
         }
-        .container {
-            text-align: center;
-            max-width: 400px;
+        .card {
             background: white;
-            padding: 30px;
-            border-radius: 12px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.05);
+            text-align: center;
+            max-width: 380px;
+            width: 100%;
         }
-        h1 { 
-            font-size: 20px; 
-            margin-bottom: 10px;
-            color: #333;
-        }
-        p {
-            font-size: 14px;
-            color: #666;
-            margin-bottom: 20px;
-        }
-        .loader {
-            border: 2px solid #e0e0e0;
-            border-top: 2px solid #667eea;
-            border-radius: 50%;
-            width: 30px;
-            height: 30px;
-            animation: spin 1s linear infinite;
-            margin: 0 auto 20px;
-        }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        .button {
-            display: inline-block;
-            padding: 12px 24px;
-            background: #667eea;
+        .logo { width: 70px; margin-bottom: 20px; }
+        h1 { color: var(--primary); margin: 0 0 10px; font-size: 20px; }
+        p { color: #666; margin-bottom: 30px; font-size: 15px; }
+        .btn {
+            display: block;
+            background: var(--primary);
             color: white;
             text-decoration: none;
-            border-radius: 8px;
-            font-weight: 500;
-            font-size: 14px;
-            transition: background 0.2s;
+            padding: 12px;
+            border-radius: 10px;
+            font-weight: 600;
+            margin-bottom: 10px;
         }
-        .button:hover {
-            background: #5568d3;
+        .loader {
+            width: 30px; height: 30px;
+            border: 3px solid #eee; border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 1s infinite linear;
+            margin: 0 auto 20px;
         }
-        #fallback {
-            display: none;
-        }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>Opening ${name}</h1>
-        <p>Redirecting to My City Kolkata app...</p>
+    <div class="card">
+        <img src="/logo.png" class="logo" alt="Logo">
         <div class="loader"></div>
-        <a href="${isAndroid ? playStoreUrl : appStoreUrl}" class="button" id="fallback">
-            Open in App Store
-        </a>
+        <h1>Opening ${name}</h1>
+        <p>Redirecting you to the app...</p>
+        <a href="${appScheme}" class="btn">Open App</a>
+        <a href="${isAndroid ? playStoreUrl : appStoreUrl}" style="color: #666; text-decoration: none; font-size: 13px;">Download App</a>
     </div>
-    
-    <!-- Hidden iframe for deep link -->
-    <iframe id="deeplink-iframe" style="display:none;"></iframe>
-    
     <script>
-        (function() {
-            var appOpened = false;
-            
-            // Try iframe first
-            var iframe = document.getElementById('deeplink-iframe');
-            iframe.src = '${appScheme}';
-            
-            // Fallback to window.location
-            setTimeout(function() {
-                if (!appOpened) {
-                    window.location.href = '${appScheme}';
-                }
-            }, 500);
-            
-            // Detect if app opened
-            document.addEventListener('visibilitychange', function() {
-                if (document.hidden) {
-                    appOpened = true;
-                }
-            });
-            
-            // Redirect to store if app doesn't open
-            setTimeout(function() {
-                if (!appOpened) {
-                    window.location.href = '${isAndroid ? playStoreUrl : appStoreUrl}';
-                }
-            }, 2500);
-            
-            // Show fallback button
-            setTimeout(function() {
-                if (!appOpened) {
-                    document.getElementById('fallback').style.display = 'inline-block';
-                }
-            }, 3000);
-        })();
+        window.location.href = "${appScheme}";
+        setTimeout(() => { 
+            // Fallback logic
+        }, 2000);
     </script>
 </body>
 </html>
-      `;
+    `;
 
-      ctx.type = 'text/html';
-      return ctx.send(redirectHtml);
-    }
-
-    // For desktop, show preview with QR code
-    return ctx.send(generateCategoryPreviewPage(name, deepLinkUrl));
+    ctx.type = 'text/html';
+    return ctx.send(redirectHtml);
   },
 };
 
 /**
- * Generate preview page for desktop users with QR code
+ * Generate preview page for desktop users (No QR Code)
  */
-function generatePreviewPage(title, description, deepLinkUrl, placeId) {
-  // Truncate description if too long
+function generatePreviewPage(title, description) {
   const shortDescription = description.length > 300 ? description.substring(0, 300) + '...' : description;
-  
-  // Generate QR code using a free API
-  const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(deepLinkUrl)}`;
   
   return `
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>${title} - My City Kolkata</title>
+    <title>${title} | My City Kolkata</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
+        :root {
+            --primary: #0e0e79;
+            --bg: #f8f9fa;
         }
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-            background: #f5f5f5;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg);
+            margin: 0;
+            padding: 0;
+            color: #333;
             min-height: 100vh;
-            padding: 20px;
+            display: flex;
+            flex-direction: column;
         }
-        .header {
+        .navbar {
             background: white;
-            padding: 20px;
-            text-align: center;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            margin-bottom: 30px;
-        }
-        .header-content {
-            max-width: 1200px;
-            margin: 0 auto;
+            padding: 15px 30px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 15px;
         }
-        .header-logo {
-            width: 40px;
+        .nav-logo {
             height: 40px;
+            margin-right: 15px;
         }
-        .header h2 {
-            font-size: 24px;
-            color: #333;
-            font-weight: 600;
+        .nav-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--primary);
         }
-        .container {
-            max-width: 800px;
-            margin: 0 auto;
+        .main-container {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 40px 20px;
+        }
+        .content-card {
             background: white;
-            border-radius: 12px;
+            max-width: 700px;
+            width: 100%;
+            border-radius: 20px;
             overflow: hidden;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.08);
+            display: flex;
+            flex-direction: column;
+            text-align: center;
         }
-        .content {
+        .hero-section {
             padding: 40px;
+            background: linear-gradient(to bottom, #fff, #f8f9fa);
+        }
+        .hero-logo {
+            width: 80px;
+            height: 80px;
+            object-fit: contain;
+            margin-bottom: 20px;
         }
         h1 {
             font-size: 32px;
-            margin-bottom: 20px;
-            color: #333;
-            font-weight: 600;
+            color: var(--primary);
+            margin: 0 0 15px;
+            line-height: 1.3;
         }
         .description {
-            font-size: 16px;
+            font-size: 18px;
+            color: #555;
             line-height: 1.6;
-            color: #666;
-            margin-bottom: 40px;
+            margin: 0 auto 30px;
+            max-width: 500px;
         }
-        .qr-section {
-            background: #f9fafb;
-            border-radius: 12px;
-            padding: 30px;
-            text-align: center;
-            margin-bottom: 30px;
+        .actions {
+            background: var(--primary);
+            padding: 40px;
+            color: white;
         }
-        .qr-section h3 {
-            font-size: 18px;
-            color: #333;
-            margin-bottom: 15px;
+        .cta-title {
+            font-size: 20px;
             font-weight: 600;
+            margin-bottom: 25px;
+            color: rgba(255,255,255,0.95);
         }
-        .qr-code {
-            background: white;
-            padding: 20px;
-            border-radius: 8px;
-            display: inline-block;
-            margin: 20px 0;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        }
-        .qr-code img {
-            display: block;
-            width: 200px;
-            height: 200px;
-        }
-        .qr-instructions {
-            font-size: 14px;
-            color: #666;
-            margin-top: 15px;
-        }
-        .download-section {
-            text-align: center;
-            padding: 30px;
-            background: #f9fafb;
-            border-radius: 12px;
-        }
-        .download-section h3 {
-            font-size: 18px;
-            color: #333;
-            margin-bottom: 20px;
-            font-weight: 600;
-        }
-        .download {
+        .download-btn {
             display: inline-flex;
             align-items: center;
-            gap: 8px;
-            padding: 14px 28px;
-            background: #667eea;
-            color: white;
+            background: white;
+            color: var(--primary);
+            padding: 15px 30px;
+            border-radius: 50px;
             text-decoration: none;
-            border-radius: 8px;
-            font-weight: 500;
+            font-weight: 700;
             font-size: 16px;
-            transition: background 0.2s;
+            transition: transform 0.2s, box-shadow 0.2s;
         }
-        .download:hover {
-            background: #5568d3;
+        .download-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
         }
-        .download svg {
-            width: 20px;
-            height: 20px;
+        .download-btn svg {
+            width: 24px;
+            height: 24px;
+            margin-right: 10px;
         }
-        @media (max-width: 768px) {
-            .content {
-                padding: 30px 20px;
-            }
-            h1 {
-                font-size: 24px;
-            }
-            .description {
-                font-size: 14px;
-            }
+        footer {
+            text-align: center;
+            padding: 20px;
+            color: #888;
+            font-size: 14px;
         }
     </style>
 </head>
 <body>
-    <div class="header">
-        <div class="header-content">
-            <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <rect width="40" height="40" rx="8" fill="#667eea"/>
-                <path d="M20 10L25 15H22V22H18V15H15L20 10Z" fill="white"/>
-                <path d="M12 28C12 27.4477 12.4477 27 13 27H27C27.5523 27 28 27.4477 28 28C28 28.5523 27.5523 29 27 29H13C12.4477 29 12 28.5523 12 28Z" fill="white"/>
-            </svg>
-            <h2>My City Kolkata</h2>
-        </div>
+    <div class="navbar">
+        <img src="/logo.png" alt="Logo" class="nav-logo">
+        <span class="nav-title">My City Kolkata</span>
     </div>
-    <div class="container">
-        <div class="content">
-            <h1>${title}</h1>
-            <div class="description">
-                ${shortDescription}
+
+    <div class="main-container">
+        <div class="content-card">
+            <div class="hero-section">
+                <img src="/logo.png" alt="My City Kolkata" class="hero-logo">
+                <h1>${title}</h1>
+                <div class="description">${shortDescription}</div>
             </div>
             
-            <div class="qr-section">
-                <h3>📱 Scan to Open in App</h3>
-                <div class="qr-code">
-                    <img src="${qrCodeUrl}" alt="QR Code to open in app" />
-                </div>
-                <p class="qr-instructions">
-                    Scan this QR code with your phone's camera to open this place in the My City Kolkata app
-                </p>
-            </div>
-            
-            <div class="download-section">
-                <h3>Don't have the app yet?</h3>
-                <a href="https://play.google.com/store/apps/details?id=com.sujoyhens.mycitykolkata" class="download">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            <div class="actions">
+                <div class="cta-title">Experience the City of Joy</div>
+                <a href="https://play.google.com/store/apps/details?id=com.sujoyhens.mycitykolkata" class="download-btn">
+                    <svg viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M3,20.5V3.5C3,2.91 3.34,2.39 3.84,2.15L13.69,12L3.84,21.85C3.34,21.6 3,21.09 3,20.5M16.81,15.12L6.05,21.34L14.54,12.85L16.81,15.12M20.16,10.81C20.5,11.08 20.75,11.5 20.75,12C20.75,12.5 20.5,12.92 20.16,13.19L17.89,14.5L15.39,12L17.89,9.5L20.16,10.81M6.05,2.66L16.81,8.88L14.54,11.15L6.05,2.66Z" />
                     </svg>
-                    <span>Download on Google Play</span>
+                    Download App
                 </a>
             </div>
         </div>
     </div>
+    
+    <footer>
+        &copy; ${new Date().getFullYear()} My City Kolkata. All rights reserved.
+    </footer>
 </body>
 </html>
   `;
 }
 
 /**
- * Generate preview page for category on desktop with QR code
+ * Generate preview page for category (No QR Code)
  */
-function generateCategoryPreviewPage(categoryName, deepLinkUrl) {
-  // Generate QR code
-  const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(deepLinkUrl)}`;
-  
+function generateCategoryPreviewPage(categoryName) {
   return `
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>${categoryName} - My City Kolkata</title>
+    <title>${categoryName} | My City Kolkata</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
+        :root {
+            --primary: #0e0e79;
+            --bg: #f8f9fa;
         }
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: #f5f5f5;
-            min-height: 100vh;
-            padding: 20px;
-        }
-        .header {
-            background: white;
-            padding: 20px;
-            text-align: center;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            margin-bottom: 30px;
-        }
-        .header-content {
-            max-width: 1200px;
-            margin: 0 auto;
+            background-color: var(--bg);
+            margin: 0;
+            padding: 0;
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 15px;
+            min-height: 100vh;
         }
-        .header h2 {
-            font-size: 24px;
-            color: #333;
-            font-weight: 600;
-        }
-        .container {
-            max-width: 600px;
-            margin: 0 auto;
+        .card {
             background: white;
-            border-radius: 12px;
-            overflow: hidden;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-            padding: 40px;
+            padding: 50px 40px;
+            border-radius: 20px;
             text-align: center;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            max-width: 500px;
+            width: 100%;
         }
-        h1 {
-            font-size: 28px;
-            margin-bottom: 15px;
-            color: #333;
-        }
-        .subtitle {
-            font-size: 16px;
-            color: #666;
-            margin-bottom: 30px;
-        }
-        .qr-section {
-            background: #f9fafb;
-            border-radius: 12px;
-            padding: 30px;
-            margin-bottom: 30px;
-        }
-        .qr-section h3 {
-            font-size: 18px;
-            color: #333;
-            margin-bottom: 15px;
-            font-weight: 600;
-        }
-        .qr-code {
-            background: white;
-            padding: 20px;
-            border-radius: 8px;
+        .logo { width: 80px; height: 80px; margin-bottom: 20px; object-fit: contain; }
+        h1 { color: var(--primary); font-size: 30px; margin-bottom: 10px; }
+        p { color: #555; font-size: 18px; margin-bottom: 40px; }
+        .btn {
             display: inline-block;
-            margin: 20px 0;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        }
-        .qr-code img {
-            display: block;
-            width: 200px;
-            height: 200px;
-        }
-        .qr-instructions {
-            font-size: 14px;
-            color: #666;
-        }
-        .download {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            padding: 14px 28px;
-            background: #667eea;
+            background: var(--primary);
             color: white;
             text-decoration: none;
-            border-radius: 8px;
-            font-weight: 500;
+            padding: 15px 40px;
+            border-radius: 30px;
+            font-weight: 600;
             font-size: 16px;
-            transition: background 0.2s;
+            box-shadow: 0 5px 15px rgba(14, 14, 121, 0.3);
+            transition: transform 0.2s;
         }
-        .download:hover {
-            background: #5568d3;
-        }
-        .download svg {
-            width: 20px;
-            height: 20px;
-        }
+        .btn:hover { transform: scale(1.05); }
     </style>
 </head>
 <body>
-    <div class="header">
-        <div class="header-content">
-            <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <rect width="40" height="40" rx="8" fill="#667eea"/>
-                <path d="M20 10L25 15H22V22H18V15H15L20 10Z" fill="white"/>
-                <path d="M12 28C12 27.4477 12.4477 27 13 27H27C27.5523 27 28 27.4477 28 28C28 28.5523 27.5523 29 27 29H13C12.4477 29 12 28.5523 12 28Z" fill="white"/>
-            </svg>
-            <h2>My City Kolkata</h2>
-        </div>
-    </div>
-    <div class="container">
+    <div class="card">
+        <img src="/logo.png" alt="My City Kolkata" class="logo">
         <h1>Explore ${categoryName}</h1>
-        <p class="subtitle">Discover amazing places in the City of Joy</p>
-        
-        <div class="qr-section">
-            <h3>📱 Scan to Open in App</h3>
-            <div class="qr-code">
-                <img src="${qrCodeUrl}" alt="QR Code" />
-            </div>
-            <p class="qr-instructions">
-                Scan this QR code with your phone to explore ${categoryName} in the My City Kolkata app
-            </p>
-        </div>
-        
-        <a href="https://play.google.com/store/apps/details?id=com.sujoyhens.mycitykolkata" class="download">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-            </svg>
-            <span>Download on Google Play</span>
+        <p>Discover the best of Kolkata with our mobile app.</p>
+        <a href="https://play.google.com/store/apps/details?id=com.sujoyhens.mycitykolkata" class="btn">
+            Download App
         </a>
     </div>
 </body>
