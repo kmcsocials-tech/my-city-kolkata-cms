@@ -45,7 +45,7 @@ module.exports = {
 
       // For mobile devices: Auto-redirect + Fallback
       const playStoreUrl = 'https://play.google.com/store/apps/details?id=com.sujoyhens.mycitykolkata';
-      const appStoreUrl = 'https://apps.apple.com/app/YOUR_APP_ID'; 
+      const appStoreUrl = 'https://apps.apple.com/in/app/my-city-kolkata/id6476503087'; 
 
       const redirectHtml = `
 <!DOCTYPE html>
