@@ -7,7 +7,7 @@
 
 module.exports = {
   /**
-   * Redirect to place (handles /place/:id)
+   * Redirect to article (handles /article/:id)
    */
   async redirectPlace(ctx) {
     const { id } = ctx.params;
@@ -21,7 +21,7 @@ module.exports = {
     const isMobile = isAndroid || isIOS;
 
     try {
-      // Fetch the place data from mycitykolkata content type
+      // Fetch the article data from mycitykolkata content type
       // @ts-ignore - strapi global is available in Strapi controllers
       const place = await strapi.entityService.findOne('api::mycitykolkata.mycitykolkata', id, {
         populate: '*',
@@ -36,7 +36,7 @@ module.exports = {
       const description = place.description || 'Discover this amazing place in Kolkata!';
 
       // App deep link scheme
-      const appScheme = `mycitykolkata://place/${id}`;
+      const appScheme = `mycitykolkata://article/${id}`;
 
       // If desktop, show preview page (no QR code needed as per request)
       if (!isMobile) {
