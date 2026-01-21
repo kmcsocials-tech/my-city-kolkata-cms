@@ -7,14 +7,6 @@ module.exports = {
       config: {
         auth: false, // No authentication required
       },
-    },
-    {
-      method: 'GET',
-      path: '/category/:name',
-      handler: 'deep-link.redirectCategory',
-      config: {
-        auth: false,
-      },
-    },
+    }
   ],
 };
