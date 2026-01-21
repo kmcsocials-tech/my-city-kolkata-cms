@@ -32,14 +32,13 @@ module.exports = {
         return ctx.notFound('Place not found');
       }
 
-      // Extract title, description, and image
+      // Extract title and description
       const title = place.title || 'My City Kolkata';
       const description = place.description || 'Discover this amazing place in Kolkata!';
-      const imageUrl = place.images?.[0]?.url || '';
 
       // If desktop, show a nice preview page
       if (!isMobile) {
-        return ctx.send(generatePreviewPage(title, description, imageUrl));
+        return ctx.send(generatePreviewPage(title, description));
       }
 
       // For mobile devices, try to open the app
@@ -58,8 +57,7 @@ module.exports = {
     
     <!-- Open Graph Meta Tags for social sharing -->
     <meta property="og:title" content="${title} - My City Kolkata">
-    <meta property="og:description" content="${description.substring(0, 200)}">
-    ${imageUrl ? `<meta property="og:image" content="${imageUrl}">` : ''}
+    <meta property="og:description" content="${description?.substring(0, 200) || 'Discover Kolkata with My City Kolkata'}">
     <meta property="og:type" content="website">
     
     <style>
@@ -79,10 +77,12 @@ module.exports = {
             max-width: 500px;
         }
         .logo {
-            width: 80px;
-            height: 80px;
+            width: 100px;
+            height: 100px;
             margin: 0 auto 20px;
             animation: pulse 2s infinite;
+            border-radius: 50%;
+            object-fit: contain;
         }
         @keyframes pulse {
             0%, 100% { transform: scale(1); }
@@ -128,11 +128,14 @@ module.exports = {
 </head>
 <body>
     <div class="container">
-        <div class="logo">🏛️</div>
+        <img src="/logo.png" alt="My City Kolkata" class="logo">
         <h1>Opening ${title}</h1>
         <p>Redirecting you to My City Kolkata app...</p>
         <div class="loader"></div>
         <a href="${isAndroid ? playStoreUrl : appStoreUrl}" class="button" id="fallback">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+            </svg>
             Open in Store
         </a>
     </div>
@@ -249,7 +252,10 @@ module.exports = {
 /**
  * Generate preview page for desktop users
  */
-function generatePreviewPage(title, description, imageUrl) {
+function generatePreviewPage(title, description) {
+  // Truncate description if too long
+  const shortDescription = description.length > 300 ? description.substring(0, 300) + '...' : description;
+  
   return `
 <!DOCTYPE html>
 <html>
@@ -264,82 +270,201 @@ function generatePreviewPage(title, description, imageUrl) {
             box-sizing: border-box;
         }
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: #f5f5f5;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
         }
         .header {
             background: linear-gradient(135deg, #0e0c28 0%, #302d74 100%);
             color: white;
-            padding: 20px;
+            padding: 40px 20px;
             text-align: center;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+        }
+        .header h2 {
+            font-size: 42px;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+        .header p {
+            font-size: 18px;
+            opacity: 0.9;
         }
         .container {
-            max-width: 800px;
-            margin: 40px auto;
+            max-width: 900px;
+            margin: 60px auto;
             background: white;
-            border-radius: 12px;
+            border-radius: 20px;
             overflow: hidden;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
-        }
-        .image {
-            width: 100%;
-            height: 400px;
-            object-fit: cover;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            flex: 1;
         }
         .content {
-            padding: 40px;
+            padding: 60px 50px;
+            text-align: center;
+        }
+        .icon-wrapper {
+            width: 120px;
+            height: 120px;
+            margin: 0 auto 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
+            animation: float 3s ease-in-out infinite;
+            padding: 20px;
+        }
+        .icon-wrapper img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
         }
         h1 {
-            font-size: 32px;
-            margin-bottom: 20px;
+            font-size: 42px;
+            margin-bottom: 25px;
             color: #0e0c28;
+            font-weight: 700;
+            line-height: 1.2;
         }
-        p {
-            font-size: 16px;
-            line-height: 1.6;
-            color: #666;
-            margin-bottom: 30px;
+        .description {
+            font-size: 18px;
+            line-height: 1.8;
+            color: #555;
+            margin-bottom: 50px;
+            text-align: left;
+            max-width: 700px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        .download-wrapper {
+            margin: 50px 0;
         }
         .download {
-            display: inline-block;
-            padding: 15px 30px;
-            background: #0e0c28;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            padding: 20px 50px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             text-decoration: none;
-            border-radius: 8px;
-            font-weight: bold;
-            transition: transform 0.2s;
+            border-radius: 50px;
+            font-weight: 700;
+            font-size: 18px;
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        .download::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+            transition: left 0.5s;
+        }
+        .download:hover::before {
+            left: 100%;
         }
         .download:hover {
-            transform: translateY(-2px);
+            transform: translateY(-5px) scale(1.05);
+            box-shadow: 0 15px 40px rgba(102, 126, 234, 0.6);
         }
-        .qr {
-            margin-top: 30px;
-            text-align: center;
-            padding: 20px;
-            background: #f9f9f9;
-            border-radius: 8px;
+        .download:active {
+            transform: translateY(-2px) scale(1.02);
+        }
+        .download-icon {
+            font-size: 24px;
+        }
+        .info-box {
+            margin-top: 40px;
+            padding: 30px;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            border-radius: 15px;
+            border-left: 5px solid #667eea;
+        }
+        .info-box p {
+            font-size: 16px;
+            color: #555;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        .info-box strong {
+            color: #0e0c28;
+            font-size: 18px;
+        }
+        .info-box svg {
+            width: 20px;
+            height: 20px;
+            flex-shrink: 0;
+        }
+        .info-box .subtext {
+            font-size: 14px;
+            color: #888;
+            margin-top: 10px;
+        }
+        @media (max-width: 768px) {
+            .content {
+                padding: 40px 30px;
+            }
+            h1 {
+                font-size: 32px;
+            }
+            .description {
+                font-size: 16px;
+            }
+            .download {
+                padding: 18px 40px;
+                font-size: 16px;
+            }
         }
     </style>
 </head>
 <body>
     <div class="header">
-        <h2>🏛️ My City Kolkata</h2>
+        <img src="/logo.png" alt="My City Kolkata" class="header-logo">
+        <h2>My City Kolkata</h2>
         <p>Explore the City of Joy</p>
     </div>
     <div class="container">
-        ${imageUrl ? `<img src="${imageUrl}" alt="${title}" class="image">` : ''}
         <div class="content">
+            <div class="icon-wrapper">
+                <img src="/logo.png" alt="My City Kolkata">
+            </div>
             <h1>${title}</h1>
-            <p>${description}</p>
-            <a href="https://play.google.com/store/apps/details?id=com.sujoyhens.mycitykolkata" class="download">
-                Download My City Kolkata App
-            </a>
-            <div class="qr">
-                <p><strong>Scan with your phone to open in app</strong></p>
-                <p style="font-size: 14px; color: #999; margin-top: 10px;">
-                    Get the My City Kolkata app to explore more places like this
+            <div class="description">
+                ${shortDescription}
+            </div>
+            <div class="download-wrapper">
+                <a href="https://play.google.com/store/apps/details?id=com.sujoyhens.mycitykolkata" class="download">
+                    <svg class="download-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    <span>Download My City Kolkata App</span>
+                </a>
+            </div>
+            <div class="info-box">
+                <p>
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
+                    </svg>
+                    <strong>Scan with your phone to open in app</strong>
                 </p>
+                <p class="subtext">Get the My City Kolkata app to explore more amazing places like this in the City of Joy</p>
             </div>
         </div>
     </div>
@@ -375,6 +500,13 @@ function generateCategoryPreviewPage(categoryName) {
         .container {
             max-width: 500px;
         }
+        .category-logo {
+            width: 100px;
+            height: 100px;
+            margin: 0 auto 20px;
+            border-radius: 50%;
+            object-fit: contain;
+        }
         h1 {
             font-size: 36px;
             margin-bottom: 20px;
@@ -385,7 +517,9 @@ function generateCategoryPreviewPage(categoryName) {
             opacity: 0.9;
         }
         .download {
-            display: inline-block;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
             padding: 15px 40px;
             background: white;
             color: #0e0c28;
@@ -398,14 +532,21 @@ function generateCategoryPreviewPage(categoryName) {
         .download:hover {
             transform: scale(1.05);
         }
+        .download svg {
+            width: 20px;
+            height: 20px;
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>🏛️</h1>
+        <img src="/logo.png" alt="My City Kolkata" class="category-logo">
         <h1>Explore ${categoryName}</h1>
         <p>Download My City Kolkata to discover amazing places in the City of Joy</p>
         <a href="https://play.google.com/store/apps/details?id=com.sujoyhens.mycitykolkata" class="download">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
             Download App
         </a>
     </div>
