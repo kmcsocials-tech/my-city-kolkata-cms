@@ -2,7 +2,7 @@ module.exports = {
   routes: [
     {
       method: 'GET',
-      path: '/place/:id',
+      path: '/article/:id',
       handler: 'deep-link.redirectPlace',
       config: {
         auth: false, // No authentication required
