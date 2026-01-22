@@ -5,6 +5,32 @@
  * Handles incoming deep links and redirects appropriately
  */
 
+// Simple in-memory cache to reduce database load
+const cache = new Map();
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+function getCached(key) {
+  const cached = cache.get(key);
+  if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+    return cached.data;
+  }
+  cache.delete(key);
+  return null;
+}
+
+function setCache(key, data) {
+  cache.set(key, { data, timestamp: Date.now() });
+  // Clean old cache entries periodically
+  if (cache.size > 100) {
+    const now = Date.now();
+    for (const [k, v] of cache.entries()) {
+      if (now - v.timestamp > CACHE_TTL) {
+        cache.delete(k);
+      }
+    }
+  }
+}
+
 module.exports = {
   /**
    * Redirect to place (handles /place/:id)
@@ -13,7 +39,44 @@ module.exports = {
     const { id } = ctx.params;
     const userAgent = ctx.request.header['user-agent'] || '';
     
-    console.log(`Deep link request for place ID: ${id}`);
+    // Validate ID to prevent invalid queries
+    const placeId = parseInt(id, 10);
+    if (!placeId || isNaN(placeId) || placeId <= 0) {
+      return ctx.badRequest('Invalid place ID');
+    }
+
+    // Check cache first
+    const cacheKey = `place:${placeId}`;
+    let place = getCached(cacheKey);
+
+    if (!place) {
+      try {
+        // Fetch the article data from mycitykolkata content type
+        // Only fetch what we need - no populate to reduce database load
+        // @ts-ignore - strapi global is available in Strapi controllers
+        place = await Promise.race([
+          strapi.entityService.findOne('api::mycitykolkata.mycitykolkata', placeId, {
+            fields: ['title', 'description'],
+            // Don't populate images - we don't use them in the mobile redirect
+          }),
+          new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('Database query timeout')), 5000)
+          ),
+        ]);
+
+        // Cache successful results
+        if (place) {
+          setCache(cacheKey, place);
+        }
+      } catch (error) {
+        console.error('Error fetching place:', error.message);
+        // Try to get from cache even if expired (stale-while-revalidate pattern)
+        place = getCached(cacheKey);
+        if (!place) {
+          throw error;
+        }
+      }
+    }
 
     // Detect device type
     const isAndroid = /android/i.test(userAgent);
@@ -21,12 +84,6 @@ module.exports = {
     const isMobile = isAndroid || isIOS;
 
     try {
-      // Fetch the article data from mycitykolkata content type
-      // @ts-ignore - strapi global is available in Strapi controllers
-      const place = await strapi.entityService.findOne('api::mycitykolkata.mycitykolkata', id, {
-        populate: '*',
-      });
-
       if (!place) {
         return ctx.notFound('Place not found');
       }
@@ -36,7 +93,7 @@ module.exports = {
       const description = place.description || 'Discover this amazing place in Kolkata!';
 
       // App deep link scheme
-      const appScheme = `mycitykolkata://place/${id}`;
+      const appScheme = `mycitykolkata://place/${placeId}`;
 
       // If desktop, show preview page (no QR code needed as per request)
       if (!isMobile) {
@@ -58,6 +115,7 @@ module.exports = {
     <meta property="og:title" content="${title}">
     <meta property="og:description" content="${description?.substring(0, 200)}">
     <meta property="og:image" content="${ctx.request.origin}/logo.png">
+    
     
     <style>
         :root {
@@ -152,16 +210,73 @@ module.exports = {
     </div>
 
     <script>
-        // Attempt auto-redirect
-        window.location.href = "${appScheme}";
-        
-        // Fallback to store if not opened
-        setTimeout(function() {
-             // Optional: Check if page is still visible (basic heuristic)
-            if (!document.hidden) {
-                // window.location.href = "${isAndroid ? playStoreUrl : appStoreUrl}";
+        (function() {
+            var appScheme = "${appScheme}";
+            var playStoreUrl = "${playStoreUrl}";
+            var appStoreUrl = "${appStoreUrl}";
+            var isAndroid = ${isAndroid};
+            var storeUrl = isAndroid ? playStoreUrl : appStoreUrl;
+            var startTime = Date.now();
+            var redirectAttempted = false;
+            var appOpened = false;
+            
+            // Function to redirect to app store
+            function redirectToStore() {
+                if (!redirectAttempted && !appOpened) {
+                    redirectAttempted = true;
+                    window.location.href = storeUrl;
+                }
             }
-        }, 2500);
+            
+            // Detect if app opened (user left the page)
+            window.addEventListener('blur', function() {
+                appOpened = true;
+            });
+            
+            window.addEventListener('pagehide', function() {
+                appOpened = true;
+            });
+            
+            document.addEventListener('visibilitychange', function() {
+                if (document.hidden) {
+                    appOpened = true;
+                }
+            });
+            
+            // Immediate redirect attempt
+            if (isAndroid) {
+                // For Android: Try intent URL (most reliable)
+                var intentUrl = "intent://place/${placeId}#Intent;scheme=mycitykolkata;package=com.sujoyhens.mycitykolkata;end";
+                window.location.href = intentUrl;
+            } else {
+                // For iOS: Try direct redirect immediately
+                window.location.href = appScheme;
+                
+                // Also try iframe method as backup
+                setTimeout(function() {
+                    if (!appOpened) {
+                        try {
+                            var iframe = document.createElement('iframe');
+                            iframe.style.border = 'none';
+                            iframe.style.width = '1px';
+                            iframe.style.height = '1px';
+                            iframe.style.position = 'absolute';
+                            iframe.style.top = '-1px';
+                            iframe.style.left = '-1px';
+                            iframe.src = appScheme;
+                            document.body.appendChild(iframe);
+                        } catch(e) {}
+                    }
+                }, 100);
+            }
+            
+            // Fallback to store after 2.5 seconds if app didn't open
+            setTimeout(function() {
+                if (!appOpened) {
+                    redirectToStore();
+                }
+            }, 2500);
+        })();
     </script>
 </body>
 </html>
@@ -172,6 +287,64 @@ module.exports = {
 
     } catch (error) {
       console.error('Error handling place redirect:', error);
+      
+      // If it's a timeout or connection error, return a simpler response
+      if (error.message?.includes('timeout') || error.message?.includes('Timeout') || error.message?.includes('pool')) {
+        // Return a basic HTML page without database data
+        const fallbackHtml = `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My City Kolkata</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            background: #f8f9fa;
+            padding: 20px;
+        }
+        .card {
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            text-align: center;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+            max-width: 400px;
+        }
+        .logo { width: 80px; margin-bottom: 20px; }
+        h1 { color: #0e0e79; margin-bottom: 20px; }
+        .btn {
+            display: block;
+            background: #0e0e79;
+            color: white;
+            text-decoration: none;
+            padding: 14px 20px;
+            border-radius: 12px;
+            font-weight: 600;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <img src="/logo.png" alt="My City Kolkata" class="logo">
+        <h1>My City Kolkata</h1>
+        <p>Please try again in a moment.</p>
+        <a href="https://play.google.com/store/apps/details?id=com.sujoyhens.mycitykolkata" class="btn">Download App</a>
+    </div>
+</body>
+</html>
+        `;
+        ctx.type = 'text/html';
+        return ctx.send(fallbackHtml);
+      }
+      
       return ctx.internalServerError('Error processing request');
     }
   },
