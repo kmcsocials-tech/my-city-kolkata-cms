@@ -1,0 +1,29 @@
+{
+  "kind": "collectionType",
+  "collectionName": "push_tokens",
+  "info": {
+    "singularName": "push-token",
+    "pluralName": "push-tokens",
+    "displayName": "Push Token",
+    "description": "Stores Expo push notification tokens from mobile devices"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "token": {
+      "type": "string",
+      "required": true,
+      "unique": true
+    },
+    "platform": {
+      "type": "enumeration",
+      "enum": [
+        "android",
+        "ios"
+      ],
+      "required": true
+    }
+  }
+}

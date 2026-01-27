@@ -14,6 +14,8 @@
     "@strapi/plugin-users-permissions": "^4.26.0",
     "@strapi/provider-upload-cloudinary": "^4.26.0",
     "@strapi/strapi": "^4.26.0",
+    "ajv": "^8.17.1",
+    "expo-server-sdk": "^4.0.0",
     "pg": "8.8.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
@@ -28,8 +30,8 @@
     "uuid": "4ffdc9f2-b362-4e18-a117-2ed7346c1b70"
   },
   "engines": {
-    "node": ">=16.0.0 <=20.x.x",
-    "npm": ">=6.0.0"
+    "node": ">=18.0.0 <=20.x.x",
+    "npm": ">=8.0.0"
   },
   "license": "MIT"
 }
